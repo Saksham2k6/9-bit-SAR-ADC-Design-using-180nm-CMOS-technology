@@ -1,0 +1,75 @@
+`include "constants.vams"
+`include "disciplines.vams"
+
+module sar_logic(clk, start, comp_out,
+                 d8,d7,d6,d5,d4,d3,d2,d1,d0,eoc);
+
+input clk, start, comp_out;
+output d8,d7,d6,d5,d4,d3,d2,d1,d0,eoc;
+
+electrical clk, start, comp_out;
+electrical d8,d7,d6,d5,d4,d3,d2,d1,d0,eoc;
+
+parameter real VDD = 1.2;
+parameter real VTH = 0.9;
+
+integer code;
+integer bit;
+integer finished;
+
+analog begin
+
+    // Initial condition
+    @(initial_step) begin
+        code = 0;
+        bit = 8;
+        finished = 0;
+    end
+
+    // Start conversion
+    @(cross(V(start)-VTH,+1)) begin
+        code = 256;          // Try MSB
+        bit = 8;
+        finished = 0;
+    end
+
+    // One decision per clock
+    @(cross(V(clk)-VTH,+1)) begin
+
+        if (bit >= 0) begin
+
+            // Comparator HIGH means Vin > VDAC
+            // LOW means Vin < VDAC, so remove trial bit
+            if (V(comp_out) < VTH)
+                code = code - (2**bit);
+
+            // Move to next bit
+            bit = bit - 1;
+
+            // Try next bit
+            if (bit >= 0)
+                code = code + (2**bit);
+
+            // Finished after LSB
+            if (bit < 0)
+                finished = 1;
+        end
+
+    end
+
+    // Convert code to output voltages
+    V(d8) <+ (code >= 256) ? VDD : 0;
+    V(d7) <+ ((code >= 128) && (code < 256)) ? VDD : 0;
+    V(d6) <+ ((code >= 64)  && (code < 128)) ? VDD : 0;
+    V(d5) <+ ((code >= 32)  && (code < 64))  ? VDD : 0;
+    V(d4) <+ ((code >= 16)  && (code < 32))  ? VDD : 0;
+    V(d3) <+ ((code >= 8)   && (code < 16))  ? VDD : 0;
+    V(d2) <+ ((code >= 4)   && (code < 8))   ? VDD : 0;
+    V(d1) <+ ((code >= 2)   && (code < 4))   ? VDD : 0;
+    V(d0) <+ ((code % 2) == 1) ? VDD : 0;
+
+    V(eoc) <+ finished ? VDD : 0;
+
+end
+
+endmodule
