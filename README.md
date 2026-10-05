@@ -339,6 +339,7 @@ More importantly, the project helped connect **transistor-level CMOS circuits wi
 **Saksham Kapoor**
 
 B.Tech. Electronics and Communication Engineering
+
 **National Institute of Technology Hamirpur**
 
 [GitHub](https://github.com/Saksham2k6)
